@@ -112,3 +112,7 @@
     background-color: hs1(var(--background));
   }
 }
+
+.bg-noise {
+  background-image: url('/noise.svg');
+}
