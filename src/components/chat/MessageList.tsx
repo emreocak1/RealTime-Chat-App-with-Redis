@@ -1,18 +1,40 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import {AnimatePresence,motion} from 'framer-motion'
-import { messages, USERS } from '@/db/dummy'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarImage } from '../ui/avatar'
+import { useSelectedUser } from '@/store/useSelectedUser'
+import { useKindeBrowserClient } from '@kinde-oss/kinde-auth-nextjs'
+import { useQuery } from '@tanstack/react-query'
+import { getMessages } from '@/actions/message.actions'
+import MessageSkeleton from './MessageSkeleton'
 
 const MessageList = () => {
-  const selectedUser = USERS[0]
-  const currentUser = USERS[1]
+  const {selectedUser} = useSelectedUser()
+  const {user:currentUser,isLoading:isUserLoading} = useKindeBrowserClient()
+  const messageRef = useRef<HTMLDivElement>(null)
+
+  
+  const {data:messages,isLoading:isMessagesListLoading} = useQuery({
+    queryKey:['messages', selectedUser?.id],
+    queryFn: async() => {
+      if(selectedUser && currentUser) return await getMessages(selectedUser?.id,currentUser?.id)
+    },
+    enabled: !!selectedUser && !!currentUser && !isUserLoading
+  })
+
+
+  //* Automatically scrolls when new messages are added
+  useEffect(()=>{
+    if(messageRef.current){
+      messageRef.current.scrollTop = messageRef.current.scrollHeight
+    }
+  },[messages])
 
 
   return (
-    <div className='w-full overflow-y-auto overflow-x-hidden h-full flex flex-col'>
+    <div ref={messageRef} className='w-full overflow-y-auto overflow-x-hidden h-full flex flex-col'>
       <AnimatePresence>
-        {messages.map((message,index)=>(
+        {!isMessagesListLoading && messages?.map((message,index)=>(
           <motion.div key={index} layout 
                       initial={{opacity:0,scale:1,y:50,x:0}} 
                       animate={{opacity:1,scale:1,y:0,x:0}} 
@@ -30,12 +52,12 @@ const MessageList = () => {
                         originY:0.5
                       }}
                       className={cn('flex flex-col gap-2 p-4 whitespace-pre-wrap',
-                        message.senderId === currentUser.id ? 'items-end' : 'items-start'
+                        message.senderId === currentUser?.id ? 'items-end' : 'items-start'
                       )}
                       >
             
             <div className="flex gap-3 items-center">
-              {message.senderId === selectedUser.id && (
+              {message.senderId === selectedUser?.id && (
                 <Avatar>
                   <AvatarImage src={selectedUser.image} alt='userImage' className='border-2 border-white rounded-full' />
                 </Avatar>
@@ -47,9 +69,9 @@ const MessageList = () => {
                 <img src={message.content} alt="image" className='border p-2 rounded h-40 md:h-52 object-cover' />
               )}
 
-              {message.senderId === currentUser.id && (
+              {message.senderId === currentUser?.id && (
                 <Avatar>
-                  <AvatarImage src={currentUser.image} alt='userImage' className='border-2 border-white rounded-full' />
+                  <AvatarImage src={`${currentUser.picture}` || '/user-placeholder.png'} alt='userImage' className='border-2 border-white rounded-full' />
                 </Avatar>
               )}
 
@@ -57,6 +79,14 @@ const MessageList = () => {
 
           </motion.div>
         ))}
+
+        {isMessagesListLoading && (
+          <>
+            <MessageSkeleton/>
+            <MessageSkeleton/>
+            <MessageSkeleton/>
+          </>
+        )}
       </AnimatePresence>
     </div>
   )
