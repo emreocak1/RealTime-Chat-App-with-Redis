@@ -4,16 +4,20 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '../ui/resi
 import { cn } from '@/lib/utils'
 import Sidebar from './Sidebar'
 import MessagePanel from './MessagePanel'
+import { User } from '@/db/dummy'
+import { useSelectedUser } from '@/store/useSelectedUser'
 
 
 type ChatLayoutProps = {
   defaultLayout: number[] | undefined
+  users: User[]
 }
 
 
-const ChatLayout = ({defaultLayout=[320,480]}:ChatLayoutProps) => {
+const ChatLayout = ({defaultLayout=[320,480],users}:ChatLayoutProps) => {
   const [isMobile,setIsMobile] = useState(false)
   const [isCollapsed,setIsCollapsed] = useState(false)
+  const {selectedUser} = useSelectedUser()
 
   useEffect(()=>{
     const checkScreenWidth = () => {
@@ -44,20 +48,25 @@ const ChatLayout = ({defaultLayout=[320,480]}:ChatLayoutProps) => {
                       }}
                       className={cn(isCollapsed && 'min-w-[80px] transition-all duration-300 ease-in-out')}
                       >
-        <Sidebar isCollapsed={isCollapsed} />
+        <Sidebar isCollapsed={isCollapsed} users={users} />
       </ResizablePanel>
 
       <ResizableHandle />
 
       <ResizablePanel defaultSize={defaultLayout[1]} minSize={30}>
-        {/* <div className="flex justify-center items-center h-full w-full px-10">
+        {!selectedUser && (
+          <div className="flex justify-center items-center h-full w-full px-10">
           <div className="flex flex-col justify-center items-center gap-4">
             <img src="/logo.png" alt="logo" className='w-full md:w-2/3 lg:w-1/2' />
             <p className='text-muted-foreground text-center'>Click on a chat to view the messages</p>
           </div>
-        </div> */}
+        </div>
+        )}
         
-        <MessagePanel />
+        {selectedUser && (
+          <MessagePanel />
+        )}
+
       </ResizablePanel>
 
     </ResizablePanelGroup>
